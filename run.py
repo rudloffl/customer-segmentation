@@ -12,8 +12,8 @@ import os
 import time
 import datetime
 
-from modules import invoicemanager as invoicemanager
-#from modules import customermanager as customermanager
+from modules import invoicemanager as Invoicemanager
+from modules import customermanager as Customermanager
 #from modules import segmentationmanager as segmentationmanager
 
 folders = {'invoice':'invoice', 'customer':'customer'}
@@ -45,7 +45,7 @@ class Foldermanagement():
                 mypath = os.path.join(os.getcwd(), foldername)
                 filenames = [f for f in listdir(mypath) if isfile(join(mypath, f)) and (f.endswith('.csv') or f.endswith('.txt'))]
                 if filenames != []:
-                    #print(filenames, ' in ', key)
+                    print(filenames, ' in ', key)
                     self.requestreatment(key, filenames[0])
 
     def logwriter(self, reqtype, message):
@@ -59,15 +59,18 @@ class Foldermanagement():
     def requestreatment(self, reqtype, task):
         """Will treat and coordinate orders found in the different files"""
         if task.endswith('.txt'):
-            self.commandtodo(reqtype, task)
+            if task.startswith('rfm'):
+                self.customerclassification(methodcalcfile='rfm', customers=task)
+            elif task.startswith('stat'):
+                self.customerclassification(methodcalcfile='stat', customers='All')
+            else:
+                self.commandtodo(reqtype, task)
         elif reqtype == 'invoice':
             self.treatnewinvoice(task)
-        elif reqtype == 'customer':
-            methodcalc = 'RFM'
-            self.customerclassification(methodcalc, task)
 
     def commandtodo(self, reqtype, task):
         """Will execute the detected commands"""
+        print(task)
         if task == 'kill.txt':
             file = os.path.join(os.getcwd(), reqtype, task)
             os.remove(file)
@@ -87,14 +90,17 @@ class Foldermanagement():
         os.remove(filepath)
         self.logwriter('Invoice', messagelog)
 
-    def customerclassification(self, methodcalc, task):
+    def customerclassification(self, methodcalcfile='stat', customers='All'):
         """Will predict or calculate the scores for the customers"""
-        pass
+        if methodcalcfile == 'stat':
+            dataframe = invoicemng.getinvoicedb()
+            scores = customermng.customerclassstat(dataframe)
+            print(scores)
 
 
 if __name__ == "__main__":
-    invoicemng = invoicemanager.InvoiceMng(miscfolders['backup'])
-
+    invoicemng = Invoicemanager.InvoiceMng(miscfolders['backup'])
+    customermng = Customermanager.Customermanager()
     foldermng = Foldermanagement()
 
 

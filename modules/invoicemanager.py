@@ -119,9 +119,9 @@ class InvoiceMng():
         #We verify that the order number is not already in the dataset
         invoicetemp = set(self.temp['InvoiceNo'])
         invoicedataset = set(self.dataset.reset_index()['InvoiceNo'])
-        print('existing ', invoicedataset)
+        #print('existing ', invoicedataset)
         dupplicates = invoicetemp.intersection(invoicedataset)
-        print('dupplicates ', dupplicates)
+        #print('dupplicates ', dupplicates)
         for dupplicate in dupplicates:
             self.temp = self.temp[self.temp['InvoiceNo'] != dupplicate]
             self.message += '== The order number {} already in the dataset==\n'.format(dupplicate)
@@ -151,13 +151,13 @@ class InvoiceMng():
         quant = self.temp.pivot(columns='QuantUnitPrice', values='TotalItem').fillna(0)
         new_names = [(i, 'QuantUnitPrice_{:02d}'.format(i)) for i in quant.columns.values]
         quant.rename(columns=dict(new_names), inplace=True)
-        self.temp = self.temp.merge(quant, how='inner', left_index=True, right_index=True)
+        self.temp = self.temp.merge(quant, how='inner', left_index=True, right_index=True).fillna(0)
 
         #quant unit price savings vectorization - savings
         quant = self.temp.pivot(columns='QuantUnitPrice', values='Savings').fillna(0)
         new_names = [(i, 'QuantUnitSavings_{:02d}'.format(i)) for i in quant.columns.values]
         quant.rename(columns=dict(new_names), inplace=True)
-        self.temp = self.temp.merge(quant, how='inner', left_index=True, right_index=True)
+        self.temp = self.temp.merge(quant, how='inner', left_index=True, right_index=True).fillna(0)
 
         #Amount cancelled
         self.temp['AmountCancelled'] = self.temp['Cancelled'] * self.temp['TotalItem']
@@ -180,13 +180,13 @@ class InvoiceMng():
         detail = [x for x in self.temp.columns.values if x.startswith('QuantUnitPrice_')]
         detail.append('InvoiceNo')
         temp = self.temp[detail].groupby('InvoiceNo').sum()
-        self.tempagg = self.tempagg.merge(temp, how='inner', left_index=True, right_index=True)
+        self.tempagg = self.tempagg.merge(temp, how='inner', left_index=True, right_index=True).fillna(0)
 
         #detail orders for invoicedb - QUANT UNIT SAVINGS
         detail = [x for x in self.temp.columns.values if x.startswith('QuantUnitSavings_')]
         detail.append('InvoiceNo')
         temp = self.temp[detail].groupby('InvoiceNo').sum()
-        self.tempagg = self.tempagg.merge(temp, how='inner', left_index=True, right_index=True)
+        self.tempagg = self.tempagg.merge(temp, how='inner', left_index=True, right_index=True).fillna(0)
 
         #InvoiceDB discount
         self.tempagg['Discount'] = self.tempagg['TotalInvoice'] / self.tempagg['TotalInvoiceInit']
@@ -208,7 +208,7 @@ class InvoiceMng():
         temp = self.tempagg.pivot(columns='Daytime', values='TotalInvoice').fillna(0)
         new_names = [(i, 'Daytime_Monetary_'+str(i)) for i in temp.columns.values]
         temp.rename(columns=dict(new_names), inplace=True)
-        self.tempagg = self.tempagg.merge(temp, how='inner', left_index=True, right_index=True)
+        self.tempagg = self.tempagg.merge(temp, how='inner', left_index=True, right_index=True).fillna(0)
 
         #When the order has been placed during the week in pounds?
         def weeksplit(x):
@@ -217,7 +217,7 @@ class InvoiceMng():
             return 'Weekday_{}_{}'.format(day, list(calendar.day_name)[day])
         self.tempagg['Weekday'] = self.tempagg['InvoiceDate'].apply(weeksplit)
         temp = self.tempagg.pivot(columns='Weekday', values='TotalInvoice').fillna(0)
-        self.tempagg = self.tempagg.merge(temp, how='inner', left_index=True, right_index=True)
+        self.tempagg = self.tempagg.merge(temp, how='inner', left_index=True, right_index=True).fillna(0)
 
         #When the order has been placed during the month?
         def monthsplit(x):
@@ -226,7 +226,7 @@ class InvoiceMng():
             return 'Month_{:02d}'.format(month)
         self.tempagg['MonthOrder'] = self.tempagg['InvoiceDate'].apply(monthsplit)
         temp = self.tempagg.pivot(columns='MonthOrder', values='TotalInvoice').fillna(0)
-        self.tempagg = self.tempagg.merge(temp, how='inner', left_index=True, right_index=True)
+        self.tempagg = self.tempagg.merge(temp, how='inner', left_index=True, right_index=True).fillna(0)
 
     def updatetoday(self):
         """Will calculate the latest day from the orders"""
@@ -274,5 +274,17 @@ class InvoiceMng():
 
     def getinvoicedb(self, customers=None, fromdate=None, monthcovered=None):
         """Used to exctract a section or totality of the invoicedb"""
-        pass
-
+        toreturn = self.dataset
+        if customers != None:
+            mask = toreturn['CustomerID'].isin(customers)
+            toreturn = toreturn.loc[mask]
+        if fromdate != None or monthcovered != None:
+            if fromdate != None and monthcovered != None:
+                toreturn = toreturn[toreturn['InvoiceDate'] <= fromdate]
+                toreturn = toreturn[toreturn['InvoiceDate'] > fromdate - timedelta(days=30 * monthcovered)]
+            else:
+                return (False, 'please Indicate fromdate and monthcovered')
+        return toreturn
+    
+if __name__ == "__main__":
+    invoicemng = InvoiceMng('')
