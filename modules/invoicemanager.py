@@ -33,7 +33,7 @@ class InvoiceMng():
         self.prices = pd.DataFrame()
         self.temp = pd.DataFrame()
         self.tempagg = pd.DataFrame()
-        self.today = datetime(2010, 1, 1, 0, 0)
+        self.today = datetime(1950, 1, 1, 0, 0)
         self.message = ''
 
     def loadcsv(self, filename):
@@ -217,15 +217,6 @@ class InvoiceMng():
             return 'Weekday_{}_{}'.format(day, list(calendar.day_name)[day])
         self.tempagg['Weekday'] = self.tempagg['InvoiceDate'].apply(weeksplit)
         temp = self.tempagg.pivot(columns='Weekday', values='TotalInvoice').fillna(0)
-        self.tempagg = self.tempagg.merge(temp, how='inner', left_index=True, right_index=True).fillna(0)
-
-        #When the order has been placed during the month?
-        def monthsplit(x):
-            """Will return the month number"""
-            month = x.month
-            return 'Month_{:02d}'.format(month)
-        self.tempagg['MonthOrder'] = self.tempagg['InvoiceDate'].apply(monthsplit)
-        temp = self.tempagg.pivot(columns='MonthOrder', values='TotalInvoice').fillna(0)
         self.tempagg = self.tempagg.merge(temp, how='inner', left_index=True, right_index=True).fillna(0)
 
     def updatetoday(self):

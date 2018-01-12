@@ -31,6 +31,11 @@ class Customermanager():
         """Will return the matrice formatted for a randomforrest classification """
         self.invoicedb = dataframe
 
+    def getdatasettraining(self):
+        """Will return the matrice formatted for a randomforrest training """
+        #self.invoicedb = dataframe
+        pass
+
     def updatescores(self):
         """Will update the scores for customers, the invoicedb must be complete"""
         #rfm score calculation
@@ -55,19 +60,79 @@ class Customermanager():
         def my_agg(x):
             '''Minimal features for RFM score calculation'''
             aggcalcul = {
-                'LastInvoice': x['InvoiceDate'].max(),
-                'Recency': (date - x['InvoiceDate'].max()).days,
-                'SpentSum': x['TotalInvoice'].sum(),
-                'SavingsSum' : x['TotalSavings'].sum(),
-                'Frequency' : x['InvoiceDate'].count(),
-                'AmountCancelledSum' : x['AmountCancelled'].sum()
-                }
+                    'LastInvoice': x['InvoiceDate'].max(),
+                    'Recency': (date - x['InvoiceDate'].max()).days,
+                    'SpentMin': x['TotalInvoice'].min(),
+                    'SpentMax': x['TotalInvoice'].max(),
+                    'SpentMean': x['TotalInvoice'].mean(),
+                    'SpentSum': x['TotalInvoice'].sum(),
+                    'SpentStd': x['TotalInvoice'].std(),
+                    'OrderSepMean': x['Ordersep'].mean(),
+                    'OrderSepMax' : x['Ordersep'].max(),
+                    'OrderSepMin' : x['Ordersep'].min(),
+                    'OrderSepStd' : x['Ordersep'].std(),
+                    'Frequency' : x['InvoiceDate'].count(),
+                    'DiscountMean' : x['Discount'].mean(),
+                    'DiscountMax' : x['Discount'].max(),
+                    'DiscountMin' : x['Discount'].min(),
+                    'DiscountStd' : x['Discount'].std(),
+                    'SavingsSum' : x['TotalSavings'].sum(),
+                    'SavingsMean' : x['TotalSavings'].mean(),
+                    'SavingsMax' : x['TotalSavings'].max(),
+                    'SavingsMin' :x['TotalSavings'].min(), 
+                    'SavingsStd' : x['TotalSavings'].std(),
+                    'AmountCancelledSum' : x['AmountCancelled'].sum(),
+                    'AmountCancelledMean' : x['AmountCancelled'].mean(),
+                    'AmountCancelledMin' : x['AmountCancelled'].min(),
+                    'AmountCancelledMax' : x['AmountCancelled'].max(),
+                    'AmountCancelledStd' : x['AmountCancelled'].std(),
+                        }
             return pd.Series(aggcalcul, index=aggcalcul.keys())
         self.customerdb = self.invoicedb.groupby('CustomerID').apply(my_agg).fillna(0)
 
+        
     def complete(self):
         """Will add all the information needed for the RMF matrix"""
-        pass
+        #detail orders for customerdb QUANT UNIT PRICE
+        detail = [x for x in invoicedb.columns.values if x.startswith('QuantUnitPrice_')]
+        detail.append('CustomerID')
+        temp = invoicedb[detail].groupby('CustomerID').agg([np.sum, np.mean, np.min, np.max, np.std]).fillna(0)
+        newnames = ["_".join(x) for x in temp.columns.ravel()]
+        temp.columns = newnames
+        temp.head()
+        customerdb = customerdb.merge(temp, how='inner', left_index=True, right_index=True)
+        customerdb.head()
+        
+        #detail orders for customerdb QUANT SAVINGS
+        detail = [x for x in invoicedb.columns.values if x.startswith('QuantUnitSavings_')]
+        detail.append('CustomerID')
+        temp = invoicedb[detail].groupby('CustomerID').agg([np.sum, np.mean, np.min, np.max, np.std]).fillna(0)
+        newnames = ["_".join(x) for x in temp.columns.ravel()]
+        temp.columns = newnames
+        temp.head()
+        customerdb = customerdb.merge(temp, how='inner', left_index=True, right_index=True)
+        customerdb.head()
+        
+        #Time of the day aggregation
+        detail = [x for x in invoicedb.columns.values if x.startswith('Daytime_Monetary_')]
+        detail.append('CustomerID')
+        temp = invoicedb[detail].groupby('CustomerID').agg([np.sum, np.mean, np.std]).fillna(0)
+        newnames = ["_".join(x) for x in temp.columns.ravel()]
+        #temp.columns = temp.columns.droplevel(0)
+        temp.columns = newnames
+        temp.head()
+        customerdb = customerdb.merge(temp, how='inner', left_index=True, right_index=True)
+        customerdb.head()
+
+        #Time of the week aggregation
+        detail = [x for x in invoicedb.columns.values if x.startswith('Weekday_')]
+        detail.append('CustomerID')
+        temp = invoicedb[detail].groupby('CustomerID').agg([np.sum, np.mean, np.std]).fillna(0)
+        newnames = ["_".join(x) for x in temp.columns.ravel()]
+        temp.columns = newnames
+        #temp.head()
+        customerdb = customerdb.merge(temp, how='inner', left_index=True, right_index=True)
+        customerdb.head()
 
 if __name__ == "__main__":
     customermng = Customermanager()

@@ -14,7 +14,7 @@ import datetime
 
 from modules import invoicemanager as Invoicemanager
 from modules import customermanager as Customermanager
-#from modules import segmentationmanager as segmentationmanager
+from modules import segmentationmanager as Segmentationmanager
 
 folders = {'invoice':'invoice', 'customer':'customer'}
 miscfolders = {'backup':'backup', 'logs':'logs'}
@@ -33,6 +33,7 @@ class Foldermanagement():
 
     def daemon(self):
         """Used to start the daemon"""
+        print('Daemon Started')
         self.logwriter('Command', 'Daemon started')
         self.watchfolder(5)
 
@@ -101,6 +102,11 @@ class Foldermanagement():
 if __name__ == "__main__":
     invoicemng = Invoicemanager.InvoiceMng(miscfolders['backup'])
     customermng = Customermanager.Customermanager()
+    segmentationmanager = Segmentationmanager.Segmentationmanager(miscfolders['backup'])
+
+    
+    
+    
     foldermng = Foldermanagement()
 
 

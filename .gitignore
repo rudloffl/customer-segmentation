@@ -102,3 +102,6 @@ ENV/
 
 #logs
 logs/
+
+#backup
+backup/
