@@ -1,1 +1,1 @@
-ordersample - complete.csv
+Calculate the scores globally 

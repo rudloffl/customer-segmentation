@@ -8,14 +8,11 @@ Created on Fri Jan  5 14:55:56 2018
 import os
 import calendar
 import math
+from datetime import timedelta
 from datetime import datetime
 import pandas as pd
 import numpy as np
 from scipy import stats
-#from dateutil.parser import parse
-
-#from datetime import timedelta
-
 
 class InvoiceMng():
     """Will handle the new invoice from CSV and maintain a invoicedb file"""
@@ -30,10 +27,10 @@ class InvoiceMng():
             self.dataset.index.name = 'InvoiceNo'
             self.pricelist = pd.DataFrame(columns=['UnitPrice'])
             self.message = '====== no existing invoicedb existing, must be created ======\n'
+            self.today = datetime(1950, 1, 1, 0, 0)
         self.prices = pd.DataFrame()
         self.temp = pd.DataFrame()
         self.tempagg = pd.DataFrame()
-        self.today = datetime(1950, 1, 1, 0, 0)
         self.message = ''
 
     def loadcsv(self, filename):
@@ -75,7 +72,8 @@ class InvoiceMng():
         try:
             self.updateorders()
         except:
-            self.message += '@@@ Something bad occured during order separation calculation sequence :-(\n'
+            self.message += '@@@ Something bad occured during order \
+                            separation calculation sequence :-(\n'
 
         self.updatetoday()
         self.message += 'Today defined as {}'.format(self.today.strftime('%Y-%m-%d -- %H-%M-%S'))
@@ -255,6 +253,7 @@ class InvoiceMng():
         """Will load an existing database from the backup folder"""
         self.dataset = pd.read_csv(os.path.join(os.getcwd(), location, 'invoicedb.csv'), index_col='InvoiceNo', parse_dates=['InvoiceDate'])
         self.pricelist = pd.read_csv(os.path.join(os.getcwd(), location, 'pricelist.csv'), index_col='Unnamed: 0')
+        self.updatetoday()
 
     def saveinvoicedb(self, location):
         """Will save the files to a backup folder"""
@@ -266,16 +265,16 @@ class InvoiceMng():
     def getinvoicedb(self, customers=None, fromdate=None, monthcovered=None):
         """Used to exctract a section or totality of the invoicedb"""
         toreturn = self.dataset
-        if customers != None:
+        if customers is not None:
             mask = toreturn['CustomerID'].isin(customers)
             toreturn = toreturn.loc[mask]
-        if fromdate != None or monthcovered != None:
-            if fromdate != None and monthcovered != None:
-                toreturn = toreturn[toreturn['InvoiceDate'] <= fromdate]
-                toreturn = toreturn[toreturn['InvoiceDate'] > fromdate - timedelta(days=30 * monthcovered)]
-            else:
-                return (False, 'please Indicate fromdate and monthcovered')
+        if fromdate is not None:
+            toreturn = toreturn[toreturn['InvoiceDate'] <= fromdate]
+        if monthcovered is not None:
+            fromdate = toreturn.InvoiceDate.max()
+            toreturn = toreturn[toreturn['InvoiceDate'] > fromdate - timedelta(days=30 * monthcovered)]
         return toreturn
-    
+
 if __name__ == "__main__":
     invoicemng = InvoiceMng('')
+    
